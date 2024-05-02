@@ -1,33 +1,48 @@
 #include <bits/stdc++.h>
-
+ 
 using namespace std;
-const int MOD = 1e9+7;
-#define ll long long int
-ll fastExp(ll a, int b)
+ 
+constexpr int MAXN = 1e6;
+int primes[MAXN+7];
+void sieveOf()
 {
-    ll res = 1;
-    while(b > 0)
+    for(int x = 2; x <= MAXN; x++)
     {
-        if(b & 1) res = res * a % MOD;
-        a = a * a % MOD;
-        b>>=1;
+        if(primes[x]) continue;
+        for(int j = x; j <= MAXN; j+=x) primes[j] = x;
     }
-    return res;
 }
-
+ 
+int count(int x)
+{
+    int div = 1;
+    while(x != 1)
+    {
+        int maxiPrime = primes[x];
+        int count = 0;
+        while(x % maxiPrime == 0)
+        {
+            count++;
+            x = x / maxiPrime;
+        }
+        div = div * (count + 1);
+    }
+    return div;
+}
 int main()
 {
     #ifdef LOCAL
     ifstream cin("input.txt");
     #endif
-    int N;
-    cin >>  N;
-
-    while(N--)
+ 
+    int T;
+    cin >> T;
+    sieveOf();
+    while(T--)
     {
-        int a,b;
-        cin >> a >> b;
-        cout << fastExp(a,b) << "\n";
+        int x;
+        cin >> x;
+        cout << count(x) << "\n";
     }
     return 0;
 }
