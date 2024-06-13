@@ -1,90 +1,84 @@
-#include <bits/stdc++.h>
+#include <vector>
+#include <iostream>
 using namespace std;
 
-#define ll long long
-const int MAXN = 1005;
-int tree[MAXN*4][MAXN*4];
-int grid[MAXN][MAXN];
-int N,M;
-    void build_y(int vx, int lx, int rx, int vy, int ly, int ry) 
-    {
-        if (ly == ry) 
-        {
-            if (lx == rx) tree[vx][vy] = grid[lx][ly];
-            else tree[vx][vy] = tree[vx*2][vy] + tree[vx*2+1][vy];
-        } 
-        else 
-        {
-            int my = (ly + ry) / 2;
-            build_y(vx, lx, rx, vy*2, ly, my);
-            build_y(vx, lx, rx, vy*2+1, my+1, ry);
-            tree[vx][vy] = tree[vx][vy*2] + tree[vx][vy*2+1];
+class SegmentTree2D {
+    vector<vector<int>> tree;
+    int rows, cols;
+
+public:
+    SegmentTree2D(int r, int c) : rows(r), cols(c) {
+        tree.resize(2 * rows, vector<int>(2 * cols, 0));
+    }
+
+    void build(vector<vector<int>>& matrix) {
+        // Initialize leaves of the segment tree
+        for (int i = 0; i < rows; ++i)
+            for (int j = 0; j < cols; ++j)
+                tree[i + rows][j + cols] = matrix[i][j];
+
+        // Build the segment tree row-wise
+        for (int i = rows; i < 2 * rows; ++i)
+            for (int j = cols - 1; j > 0; --j)
+                tree[i][j] = tree[i][2 * j] + tree[i][2 * j + 1];
+
+        // Build the segment tree column-wise
+        for (int i = rows - 1; i > 0; --i)
+            for (int j = 0; j < 2 * cols; ++j)
+                tree[i][j] = tree[2 * i][j] + tree[2 * i + 1][j];
+    }
+
+    void update(int row, int col, int value) {
+        // Update the value at (row, col)
+        int r = row + rows, c = col + cols;
+        tree[r][c] = value;
+
+        // Update the row segment tree
+        for (int j = c; j > 1; j /= 2)
+            tree[r][j / 2] = tree[r][j] + tree[r][j ^ 1];
+
+        // Update the column segment tree
+        for (int i = r; i > 1; i /= 2) {
+            int j = c;
+            while (j >= 1) {
+                tree[i / 2][j] = tree[i][j] + tree[i ^ 1][j];
+                j /= 2;
+            }
         }
     }
 
-    void build_x(int vx, int lx, int rx) {
-        if (lx != rx) 
-        {
-            int mx = (lx + rx) / 2;
-            build_x(vx*2, lx, mx);
-            build_x(vx*2+1, mx+1, rx);
-        }
-        build_y(vx, lx, rx, 1, 0, M-1);
-    }
+    int sumRegion(int row1, int col1, int row2, int col2) {
+        int sum = 0;
+        row1 += rows; col1 += cols;
+        row2 += rows; col2 += cols;
 
-    ll sum_y(int vx, int vy, int tly, int try_, int ly, int ry) {
-        if (ly > ry) 
-        {
-            return 0;
+        for (int i = row1; i <= row2; ++i) {
+            int left = col1, right = col2;
+            while (left <= right) {
+                if (left % 2 == 1) sum += tree[i][left++];
+                if (right % 2 == 0) sum += tree[i][right--];
+                left /= 2; right /= 2;
+            }
         }
-        if (ly == tly && try_ == ry) 
-        {
-            return tree[vx][vy];
-        }
-        int tmy = (tly + try_) / 2;
-        return sum_y(vx, vy*2, tly, tmy, ly, min(ry, tmy)) + sum_y(vx, vy*2+1, tmy+1, try_, max(ly, tmy+1), ry);
-    }
 
-    ll sum_x(int vx, int tlx, int trx, int lx, int rx, int ly, int ry) 
-    {
-        if (lx > rx) 
-        {
-            return 0;
-        }
-        if (lx == tlx && trx == rx) 
-        {
-            return sum_y(vx, 1, 0, M-1, ly, ry);
-        }
-        int tmx = (tlx + trx) / 2;
-        return sum_x(vx*2, tlx, tmx, lx, min(rx, tmx), ly, ry) + sum_x(vx*2+1, tmx+1, trx, max(lx, tmx+1), rx, ly, ry);
+        return sum;
     }
-
+};
 
 int main() {
-    int N,Q;
-    cin >> N >> Q;
-    M = N;
-    char c;
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            cin >> c;
-            if(c == '*')
-            {
-                grid[i][j] = 1;
-            }
-            else
-            {
-                grid[i][j] = 0;
-            }
-        }
-    }
-    build_x(1,0,N-1);
-    while (Q--) {
-        int x1, y1, x2, y2;
-        cin >> x1 >> y1 >> x2 >> y2;
-        // Adjust for 0-based indexing if necessary
-        cout << sum_x(1, 0, N-1, x1-1, x2-1, y1-1, y2-1) << endl;
-    }
+    vector<vector<int>> matrix = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    SegmentTree2D st(3, 3);
+    st.build(matrix);
+
+    cout << "Sum of region (0, 0) to (2, 2): " << st.sumRegion(0, 0, 2, 2) << endl;
+
+    st.update(1, 1, 10);
+    cout << "Sum of region (0, 0) to (2, 2) after update: " << st.sumRegion(0, 0, 2, 2) << endl;
 
     return 0;
 }
